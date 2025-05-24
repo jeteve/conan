@@ -26,15 +26,20 @@ class TestLocalRecipeIndexNew:
 
         c0 = TestClient()
         c0.servers["file_server"] = file_server
-        c0.run(f"new local_recipes_index -d name=pkg -d version=0.1 -d url={url} -d sha256={sha256}")
-        # A local create is possible, and it includes a test_package
-        c0.run("create recipes/pkg/all --version=0.1")
-        assert "pkg: Release!" in c0.out
+        c0.run(
+            f"new local_recipes_index -d name=pkg -d version=0.1 -d url={url} -d sha256={sha256}")
+        # A local source is possible, and it includes a test_package
+        c0.run("source recipes/pkg/all --version=0.1")
+        # assert c0.out == "BLA"
+        assert "Uncompressing pkg0.1.zip" in c0.out
         remote_folder = c0.current_folder
 
         c = TestClient()
         c.servers["file_server"] = file_server
         c.run(f"remote add local '{remote_folder}'")
+        c.run("download -r local pkg/0.1")
+        assert "Downloading recipe" in c.out
+
         c.run("new cmake_exe -d name=app -d version=0.1 -d requires=pkg/0.1")
         c.run("create . --version=0.1 --build=missing")
         assert "pkg: Release!" in c.out

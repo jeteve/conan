@@ -114,7 +114,7 @@ Some specific versions, like cmake>=3.15 are necessary.
 You can run the tests like this:
 
 ```bash
-$ python -m pytest .
+$ python -m pytest test/
 ```
 
 A few minutes later it should print ``OK``:
