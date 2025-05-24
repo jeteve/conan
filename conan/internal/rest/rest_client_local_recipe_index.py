@@ -21,6 +21,7 @@ from conan.internal.util.files import load, save, rmdir, copytree_compat
 
 
 def add_local_recipes_index_remote(home_folder, remote):
+    """Does nothing if the remote type is NOT LOCAL_RECIPES_INDEX """
     if remote.remote_type != LOCAL_RECIPES_INDEX:
         return
     local_recipes_index_path = HomePaths(home_folder).local_recipes_index_path
@@ -90,17 +91,20 @@ class RestApiClientLocalRecipesIndex:
                              "binary packages")
 
     def upload_recipe(self, ref, files_to_upload):
-        raise ConanException(f"Remote local-recipes-index '{self._remote.name}' doesn't support upload")
+        raise ConanException(
+            f"Remote local-recipes-index '{self._remote.name}' doesn't support upload")
 
     def upload_package(self, pref, files_to_upload):
-        raise ConanException(f"Remote local-recipes-index '{self._remote.name}' doesn't support upload")
+        raise ConanException(
+            f"Remote local-recipes-index '{self._remote.name}' doesn't support upload")
 
     def authenticate(self, user, password):
         raise ConanException(f"Remote local-recipes-index '{self._remote.name}' doesn't support "
                              "authentication")
 
     def check_credentials(self, force_auth=False):
-        raise ConanException(f"Remote local-recipes-index '{self._remote.name}' doesn't support upload")
+        raise ConanException(
+            f"Remote local-recipes-index '{self._remote.name}' doesn't support upload")
 
     def search(self, pattern=None):
         return self._layout.get_recipes_references(pattern)
@@ -110,13 +114,16 @@ class RestApiClientLocalRecipesIndex:
         return {}
 
     def remove_recipe(self, ref):
-        raise ConanException(f"Remote local-recipes-index '{self._remote.name}' doesn't support remove")
+        raise ConanException(
+            f"Remote local-recipes-index '{self._remote.name}' doesn't support remove")
 
     def remove_all_packages(self, ref):
-        raise ConanException(f"Remote local-recipes-index '{self._remote.name}' doesn't support remove")
+        raise ConanException(
+            f"Remote local-recipes-index '{self._remote.name}' doesn't support remove")
 
     def remove_packages(self, prefs):
-        raise ConanException(f"Remote local-recipes-index '{self._remote.name}' doesn't support remove")
+        raise ConanException(
+            f"Remote local-recipes-index '{self._remote.name}' doesn't support remove")
 
     def get_recipe_revisions_references(self, ref):
         ref = self._export_recipe(ref)

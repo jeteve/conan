@@ -4,7 +4,7 @@ from typing import List
 
 from requests.exceptions import ConnectionError
 
-from conan.api.model import LOCAL_RECIPES_INDEX
+from conan.api.model import LOCAL_RECIPES_INDEX, GIT_RECIPES_INDEX
 from conan.internal.rest.rest_client_local_recipe_index import RestApiClientLocalRecipesIndex
 from conan.api.model import Remote
 from conan.api.output import ConanOutput
@@ -22,6 +22,7 @@ from conan.internal.util.files import mkdir, tar_extract
 
 class RemoteManager:
     """ Will handle the remotes to get recipes, packages etc """
+
     def __init__(self, cache, auth_manager, home_folder):
         self._cache = cache
         self._auth_manager = auth_manager
@@ -31,6 +32,10 @@ class RemoteManager:
     def _local_folder_remote(self, remote):
         if remote.remote_type == LOCAL_RECIPES_INDEX:
             return RestApiClientLocalRecipesIndex(remote, self._home_folder)
+
+    def _git_remote(self, remote):
+        if remote.remote_type == GIT_RECIPES_INDEX:
+            return RestApiClientGitRecipesIndex(remote, self._home_folder)
 
     def check_credentials(self, remote, force_auth=False):
         self._call_remote(remote, "check_credentials", force_auth)
@@ -57,6 +62,11 @@ class RemoteManager:
             local_folder_remote.get_recipe(ref, export_folder)
             return layout
 
+        git_remote = self._git_remote(remote)
+        if git_remote is not None:
+            git_remote.get_recipe(ref, export_folder)
+            return layout
+
         download_export = layout.download_export()
         try:
             zipped_files = self._call_remote(remote, "get_recipe", ref, download_export, metadata,
@@ -74,7 +84,8 @@ class RemoteManager:
                                      f"no conanmanifest.txt")
             self._signer.verify(ref, download_export, files=zipped_files)
         except BaseException:  # So KeyboardInterrupt also cleans things
-            ConanOutput(scope=str(ref)).error(f"Error downloading from remote '{remote.name}'", error_type="exception")
+            ConanOutput(scope=str(ref)).error(
+                f"Error downloading from remote '{remote.name}'", error_type="exception")
             self._cache.remove_recipe_layout(layout)
             raise
         export_folder = layout.export()
@@ -103,7 +114,8 @@ class RemoteManager:
             self._call_remote(remote, "get_recipe", ref, download_export, metadata,
                               only_metadata=True)
         except BaseException:  # So KeyboardInterrupt also cleans things
-            output.error(f"Error downloading metadata from remote '{remote.name}'", error_type="exception")
+            output.error(
+                f"Error downloading metadata from remote '{remote.name}'", error_type="exception")
             raise
 
     def get_recipe_sources(self, ref, layout, remote):
@@ -114,6 +126,11 @@ class RemoteManager:
         local_folder_remote = self._local_folder_remote(remote)
         if local_folder_remote is not None:
             local_folder_remote.get_recipe_sources(ref, export_sources_folder)
+            return
+
+        git_remote = self._git_remote(remote)
+        if git_remote is not None:
+            git_remote.get_recipe_sources(ref, export_sources_folder)
             return
 
         zipped_files = self._call_remote(remote, "get_recipe_sources", ref, download_folder)
@@ -150,7 +167,8 @@ class RemoteManager:
             self._call_remote(remote, "get_package", pref, download_pkg_folder,
                               metadata, only_metadata=True)
         except BaseException as e:  # So KeyboardInterrupt also cleans things
-            output.error(f"Exception while getting package metadata: {str(pref.package_id)}", error_type="exception")
+            output.error(
+                f"Exception while getting package metadata: {str(pref.package_id)}", error_type="exception")
             output.error(f"Exception: {type(e)} {str(e)}", error_type="exception")
             raise
 
@@ -182,7 +200,8 @@ class RemoteManager:
             raise PackageNotFoundException(pref)
         except BaseException as e:  # So KeyboardInterrupt also cleans things
             self._cache.remove_package_layout(layout)
-            scoped_output.error(f"Exception while getting package: {str(pref.package_id)}", error_type="exception")
+            scoped_output.error(
+                f"Exception while getting package: {str(pref.package_id)}", error_type="exception")
             scoped_output.error(f"Exception: {type(e)} {str(e)}", error_type="exception")
             raise
 
@@ -245,7 +264,8 @@ class RemoteManager:
         try:
             return cached_method[pref]
         except KeyError:
-            result = self._call_remote(remote, "get_latest_package_reference", pref, headers=headers)
+            result = self._call_remote(
+                remote, "get_latest_package_reference", pref, headers=headers)
             cached_method[pref] = result
             return result
 
@@ -265,6 +285,11 @@ class RemoteManager:
         local_folder_remote = self._local_folder_remote(remote)
         if local_folder_remote is not None:
             return local_folder_remote.call_method(method, *args, **kwargs)
+
+        git_remote = self._git_remote(remote)
+        if git_remote is not None:
+            return git_remote.call_method(method, *args, **kwargs)
+
         try:
             return self._auth_manager.call_rest_api_method(remote, method, *args, **kwargs)
         except ConnectionError as exc:

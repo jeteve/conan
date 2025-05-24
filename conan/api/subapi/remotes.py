@@ -4,7 +4,7 @@ import os
 from collections import OrderedDict
 from urllib.parse import urlparse
 
-from conan.api.model import Remote, LOCAL_RECIPES_INDEX
+from conan.api.model import Remote
 from conan.api.output import ConanOutput
 from conan.internal.cache.home_paths import HomePaths
 from conan.internal.conan_app import ConanBasicApp
@@ -35,10 +35,12 @@ class RemotesAPI:
         self._home_folder = conan_api.home_folder
         self._remotes_file = HomePaths(self._home_folder).remotes_path
         # Wraps an http_requester to inject proxies, certs, etc
-        self._requester = ConanRequester(self._conan_api.config.global_conf, self._conan_api.cache_folder)
+        self._requester = ConanRequester(
+            self._conan_api.config.global_conf, self._conan_api.cache_folder)
 
     def reinit(self):
-        self._requester = ConanRequester(self._conan_api.config.global_conf, self._conan_api.cache_folder)
+        self._requester = ConanRequester(
+            self._conan_api.config.global_conf, self._conan_api.cache_folder)
 
     def list(self, pattern=None, only_enabled=True):
         """
@@ -118,7 +120,7 @@ class RemotesAPI:
         """
         add_local_recipes_index_remote(self._home_folder, remote)
         remotes = _load(self._remotes_file)
-        if remote.remote_type != LOCAL_RECIPES_INDEX:
+        if remote.remote_type is None:
             _validate_url(remote.url)
         current = {r.name: r for r in remotes}.get(remote.name)
         if current:  # same name remote existing!
@@ -175,7 +177,7 @@ class RemotesAPI:
         except KeyError:
             raise ConanException(f"Remote '{remote_name}' doesn't exist")
         if url is not None:
-            if remote.remote_type != LOCAL_RECIPES_INDEX:
+            if remote.remote_type is not None:
                 _validate_url(url)
             _check_urls(remotes, url, force=False, current=remote)
             remote.url = url
@@ -362,7 +364,7 @@ def _check_urls(remotes, url, force, current):
     for r in remotes:
         if r is not current and r.url == url:
             msg = f"Remote url already existing in remote '{r.name}'. " \
-                  f"Having different remotes with same URL is not recommended."
+                f"Having different remotes with same URL is not recommended."
             if not force:
                 raise ConanException(msg + " Use '--force' to override.")
             else:
